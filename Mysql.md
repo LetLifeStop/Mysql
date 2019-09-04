@@ -56,10 +56,10 @@ cmd控制台
 
 1. net start mysql ,这个是启动mysql服务器
 2. mysql -u root -p 登录
-   * -h 指定客户端所要登录的Mysql主机名，可省略，默认是local post
-   * -u 登录的用户名
-   * -p通过密码登录
-   * -P 端口号
+   - -h 指定客户端所要登录的Mysql主机名，可省略，默认是local post
+   - -u 登录的用户名
+   - -p通过密码登录
+   - -P 端口号
 3. 然后就能进行操作了
 4. net stop mysql 这个是关闭mysql服务器
 
@@ -145,14 +145,14 @@ alter database mydatabase charset gbk;
 
 **创建数据表**
 
-注意：表示必须放到对应的数据库下：
+注意：表示必须放到对应的数据库下
 
 方法
 
 1. 在数据表名字前面加上数据库名称  ，还有  '' .  ''  mydatabase2.class
-2. 
+2. 格式：create table 表明（字段名 字段类型【字段属性】 ，字段名，字段类型【字段属性】。。。);
 
-格式：create table 表明（字段名 字段类型【字段属性】 ，字段名，字段类型【字段属性】。。。);
+**多个类型之间通过，隔开，然后最后一个类型后面与）之间无符号**
 
 ```mysql
 create table mydatabase2.class(
@@ -217,13 +217,12 @@ Desc  表名
 show columns from 表名
 ```
 
-* Field 字段名称
-
-* Type 字段类型
-* NULL  值是否允许为空
-* Key  索引
-* Default 默认值
-* Extra  额外的属性
+- Field 字段名称
+- Type 字段类型
+- NULL  值是否允许为空
+- Key  索引
+- Default 默认值
+- Extra  额外的属性
 
 **显示表创建语句**
 
@@ -250,7 +249,7 @@ Mysql中的多种语句结束符，
 
 Engine：存储引擎，mysql提供的具体存储数据的方式
 
-Charset：字符集，只对自己当前表有效，（级别比数据库高）
+Charset：字符集，只对自己当前表有效（级别比数据库高）
 
 Collate：校对集
 
@@ -416,4 +415,705 @@ set character_set_client = gbk; // 客户端到服务器
 set character_set_connection = gbk; // 更好的帮助客户端于服务器之间的字符集转换
 set character_set_result = gbk; // 告诉客户端服务端所有的返回数据字符集类型
 ```
+
+
+
+#### 列类型（字段类型）
+
+一个字节是8比特，int类型是4个字节，然后就是 2 ^ 32 这样来推断 
+
+ **整数类型**
+
+1. Tinyint （一个字节）
+2. Smallint （两个字节）
+3. Mediumint （三个字节）
+4. Int （四个字节）
+5. Bigint （八个字节）
+
+```mysql
+create table my_int(
+int_1 tinyint,
+int_2 smallint,
+int_3 mediumint,
+int_4 int,
+int_5 bigint
+)charset utf8;
+```
+
+**插入数据**
+
+```mysql
+insert into my_int (int_1,int_2,int_3,int_4,int_5) values (10,100,1000,10000,100000);
+```
+
+当插入的范围超过该类型定义的范围的时候，会以补码的形式存在
+
+
+
+**unsigned类型，在相应的类型后面加上unsigned** 
+
+```mysql
+create table my_int2(
+int_1 tinyint unsigned,
+int_2 smallint,
+int_3 mediumint,
+int_4 int,
+int_5 bigint
+)charset utf8;
+```
+
+
+
+**显示长度**
+
+指数据在显示的时候，到底可以显示多长位
+
+Tinyint(3) 表示最长可以显示3位 ，但是显示长度只是代表了数据是否可以达到指定的长度，但是不会自动补零。如果还要自动补零，还需要给字段加一个 zerofill 属性
+
+zerofill：从左侧开始填充0，（负数的时候无法使用），**一旦使用zerofill就相当于确定该字段为unsigned类型**
+
+
+
+**小数类型**
+
+分为浮点型，定点型
+
+**浮点型**
+
+精度类型，是一种有可能丢失精度的数据类型，尤其是在超出精度长度的时候
+
+- float
+
+称之为单精度类型，系统提供4个字节来存储数据，但是能表示的范围比整形大，大约是10^38，只能保证数据在7位数以内是精确的
+
+基本语法：
+
+```mysql
+float    不指定小数位的浮点数
+float(10,2)  整数部分为8位，小数部分为2位
+```
+
+创建一个数据表保存浮点数据：
+
+注意：
+
+ **For float(M,D), double(M,D) or decimal(M,D), M must be >= D** 
+
+**创建：**
+
+```mysql
+create table my_float(
+f1 float,
+f2 float(10,2)
+)charset utf8;
+```
+
+**存储：**
+
+```mysql
+insert into my_float (f1,f2) values (1.2,2.3);
+```
+
+1. **如果数据精度丢失，浮点型按照四舍五入的方法进行计算**
+2. 用户不能插入数据直接超过指定的整数部分长度，但是如果是系统自动进位，这个是允许的。比如  999.9 进位到 1000
+3. 浮点数可以采用科学计数法来存储数据
+
+
+
+- double 
+
+被称为双精度，采用8个字节来存储数据，表示的范围更大， 10 ^ 308 ,但是精度只有15位左右
+
+
+
+**定点数：**
+
+能够保证数据精确的小数（**整数部分一定精确，但是小数部分不一定精确**）
+
+- Decimal
+
+系统根据存储的数据来分配存储空间，每大概9个数就会分配四个字节来存储，同时小数部分和整数部分是分开的, **如果整数部分进位，超出长度也会报错**
+
+格式：
+
+Decimal(M,D);
+
+M 表示总长度，最大值不能超过65. D代表小数部分长度，最长不能超过30
+
+1. 创建表
+
+```mysql
+create table my_dec2(
+f1 float(10.2),
+f2 decimal(10,2)
+)charset utf8;
+```
+
+插入正常数据
+
+```mysql
+insert into my_dec values(12345678.90,12345678.90);
+```
+
+
+
+**时间日期类型**
+
+* Date
+
+日期类型，对应格式 YYYY-mm-dd。范围 从1000-01-01 ~ 9999 -12 -12
+
+* Time
+
+时间类型，能够制定某个具体的时间段，表示格式 HH：ii：ss，但是系统提供了3个字节来存储，具体用处是描述时间段 ， 范围 从 -838:59:59 ~ 838:59:59 
+
+* Datetime
+
+日期时间类型，将前两种合起来 是 YYYY-mm-dd HH:ii:ss .一共是八个字节存储数据。表示的区间范围 1000-01-01 00：00:00 ~ 9999:12:12 23.59:59
+
+* Timestamp
+
+时间戳类型，mysql中的时间戳是从格林威治时间开始的  ，格式为 YYYY-mm-dd HH:ii:ss 
+
+* Year
+
+年类型，占用一个字节来保存，能表示1900 ~ 2155年
+
+
+
+**创建对应的时间日期类型的数据表**
+
+```mysql
+create table my_data2(
+d1 date,
+d2 time,
+d3 datetime,
+-- 如果要时间戳自动更新的话，就需要加选项 
+d4 timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+d5 year
+)charset utf8;
+```
+
+
+
+**ps：datatime和 timestamp 的区别**
+
+* datatime 
+
+1. 允许为空值，可以自定义值，系统不会修改其值
+2. 不可以设定默认值，所以在不允许为空的情况下，必须手动指定database字段的值才能成功插入数据
+3. 虽然不可以设定默认值，但是可以在指定datatime字段的值时，使用now变量来自动插入系统当前的时间
+
+* timestamp
+
+1. 允许为空值，但是不可以定义值，空值是没有任何意义
+2. 默认值为 CURRENT_TIMESTAMP( )，就是当前的系统时间
+3. 数据库会自动修改这个值，所以在插入记录的时候只需要在设计表上添加一个timestamp字段就可以，不需要指定timestamp字段的名称 和 timestamp字段的值，插入该字段的值会自动变成当前的系统时间
+4. 当修改记录表中的值的时候，对应记录表的timestamp值会自动更新为当前系统的时间
+
+
+
+**插入数据**
+
+```mysql
+insert into my_data (d1,d2,d3,d4,d5) values ('1900-01-01','12:12:12','1900-01-01 12:12:12','1999-01-01 12:12:12',69);
+```
+
+注意：year既可以采用两位数的数据插入，也可以采用4位数；当year按照两位数来进行插入的时候， <= 69, 默认年份是20XX；当 >=70 的时候，默认年份是 19XX；
+
+
+
+**更新数据**
+
+```mysql
+update my_data set d1 = '1905-01-01' where d5 ='2069';
+```
+
+
+
+在进行时间类型的录入的时候，还可以进行一个简单的日期代替时间
+
+```mysql
+-- 在当前时间往后加5天
+5 12:12:12
+```
+
+
+
+**字符类型**
+
+**在utf8中，一个字符都会占用3个字节**
+
+**char**
+
+定长字符：指定长度后，系统会分配指定的空间用于存储数据结构
+
+基本语法：char(L) ，L长度为 0 ~ 255
+
+**varchar**
+
+变长字符：指定长度后，系统会根据实际存储的数据来计算长度，分配合适的长度
+
+（数据没有超出长度）
+
+基本语法：Varchar（L）。L表示字符数，L的理论长度为 0 ~ 65535
+
+**因为varchar要记录数据长度，所以每个varchar数据产生后，系统都会在数据后面增加 1-2个字节的开销；是用来保存数据所占用的空间长度，如果数据本身小于 127个字符，额外开销一个字节，如果大于127个字符，额外开销两个字节**
+
+
+
+**char 和 varchar 的区别：**
+
+1. char 定空间是通过指定，而varchar是通过数据来定空间
+2. char 的数据查询效率比varchar高
+
+
+
+ps：
+
+* 如果确定数据一定是占指定长度，那么使用char类型，否则使用varchar类型
+
+* 如果数据长度超过255个字符，不论是否固定长度，都要用text，不再使用char和varchar
+
+
+
+**Text**
+
+文本类型，mysql 提供了两大种文本类型，text 和 blob 。
+
+text：存储普通的字符文本
+
+blob：存储二进制文件
+
+
+
+**text分类：**
+
+* tinytext ，一个字节存储  实际存储为 2^8 + 1
+* text  两个字节存储   实际存储为 2^16 + 2  
+* mediumtext: 使用三个字节存储，实际存储为 2^ 24 + 3
+* longtext ：使用四个字节存储，实际存储为 2^32 + 4
+
+
+
+**注意：**
+
+在选择对应的存储文本的时候，不用刻意去选择text类型，系统会自动根据存储的数据长度来选择合适的文本类型
+
+
+
+**Enum** 
+
+枚举类型，在数据插入之前，先设定几个项，这几个项就是可能最终出现的数据结果。
+
+基本语法：
+
+enum ( 数据值1，数据值2....)
+
+ps：系统提供了1到2个字节来存储枚举数据结构，通过计算enum列举的具体值来分配空间
+
+ <= 255 一个字节；>= 255 && <= 65535 ，系统采用两个字节保存
+
+
+
+**创建表**
+
+```mysql
+create table my_enum(
+lala enum('男','女','保密')
+)charset utf8;
+```
+
+**插入数据**
+
+```mysql
+insert into my_enum values('男');
+-- 这是错误的
+insert into my_enum values('我');
+```
+
+enum有规范数据的功能，能够保证插入的数据必须是设定的范围
+
+**枚举的存储原理：**
+
+字段上存储的值并不是真正的字符串，而是一个下标，相当于对这个字符串hash了一下，每一次输进来的数先判断是不是在范围内，然后再判断是哪个下标（从1开始）
+
+```mysql
+-- 查看方法
+select 字段名 + 0 from 表名;
+select lala +  0 from my_enum;
+```
+
+同理，在插入的时候也可以通过下标来进行插入
+
+```mysql
+insert into my_enum values(1);
+```
+
+**枚举的意义**
+
+* 规范数据本身，限定只能插入规定的数据项
+* 节省内存空间
+
+
+
+**Set**
+
+集合，将多个数据选项可以同时保存的数据类型，本质是按照指定的项对应的二进制位来进行控制，1表示该选项被选中
+
+**基本语法：**
+
+set ('值1','值2','值3’,,,,);
+
+系统通过自定计算来选择具体的存储单元
+
+1字节-> 8个选项
+
+2字节-> 16个选项
+
+3字节->24个选项
+
+8字节->set可以表示64个选项 
+
+**set和enum运行原理相同，最终存储到数据字段的依旧是数字而不是真正的字符串**
+
+1. 创建表
+
+```mysql
+create table my_set(
+hk set('黄啊','就是','这个样','啊啊啊啊','噗哈哈哈哈哈')
+)charset utf8;
+```
+
+2. 插入数据，可以插入多个数据，当不是set的时候，无法插入
+
+```mysql
+insert into my_set values('黄啊,啊啊啊啊');
+```
+
+3. 插入的数据会自动按照set中的值自动排序
+
+4. 数据存储方式，通过二进制的形式来实现。当我们插入多个数的时候，对应原来的set里面的值，如果存在则二进制为1 ，否则为0.然后将获得的二进制倒过来，再转换成十进制，这个就是此次插入的value 的值。也就是说我们可以直接插入这个10进制的数来直接插入这两个元素
+
+**set集合的意义**
+
+1. 规范数据  2. 节省存储空间
+
+
+
+#### 列属性
+
+列属性也称为字段属性，mysql中一共有6个属性：null，默认值，列描述，主键，唯一键 和 自动增长
+
+
+
+* NULL
+
+NULL属性：代表字段为空，如果对应的NULL为YES表示该字段可以为空
+
+注意：
+
+1. 在设计表的时候，尽量不要让数据为空
+2. Mysql 的 记录长度为 65535个字节，如果一个表中允许为NULL，那么系统就会设计保留一个字节来存储NULL，最终有效存储长度为 65534个字节
+
+
+
+* 默认值
+
+default：默认值，当字段被设计的时候，如果允许默认的条件下，用户不进行数据的插入，那么就可以使用提前准备好的数据来填充，通常填充的是NULL
+
+```mysql
+create table my_default(
+-- NULL 不能为空
+name varchar(10) NOT NULL,
+-- 如果当前字段在进行数据插入的时候没有提供数据，默认值为 18
+age int default 18
+)charset utf8;
+```
+
+default 的另一个用法：
+
+```mysql
+-- 使用默认值进行插入
+insert into my_default (name,age) values ('dawd',default);
+```
+
+
+
+* 列描述
+
+comment，专门用于给开发人员进行维护的一个注释说明
+
+基本语法： comment '字段描述'
+
+```mysql
+create table my_comment(
+name varchar(10) not null comment '当前为用户名，不能为空',
+pass varchar(50)  comment '密码可以为空'
+)charset utf8;
+```
+
+
+
+* 主键
+
+primary key ，主要的键，**在一张表上，有且只有一个字段**，里面的值具有唯一性
+
+PRI 主键约束；UNI 唯一约束； MUL 可以重复；**主键的NULL 为 NO**
+
+
+
+创建方法：
+
+方法1，直接在需要当做主键的字段之后，增加primary key 属性来确定主键
+
+```mysql
+create table my_key1(
+username varchar(10),
+primary key(username)
+)charset utf8;
+```
+
+方法2，在所有字段之后增加primary key 选项：primary key(字段信息)
+
+```mysql
+create table my_key2(
+username varchar(10) primary key
+)charset utf8;
+```
+
+方法3.
+
+**创建表之后**增加主键：
+
+基本语法： alter table 表名 add primary key(字段)；
+
+```mysql
+create table my_key3(
+username varchar(10)
+-- primary key(username)
+)charset utf8;
+
+alter table my_key3 add primary key (username);
+```
+
+
+
+查看主键：
+
+```mysql
+-- 查看表的结构
+desc my_key3;
+-- 查看表的创建语句
+show create table my_key3;
+```
+
+
+
+删除主键：
+
+```mysql
+alter table 表名 drop primary key;
+alter table my_key3 drop primary key;
+```
+
+
+
+复合主键
+
+表的主键含有一个以上的字段组成
+
+```mysql
+create table my_key4(
+username varchar(10),
+teachname varchar(10),
+primary key(username,teachname)
+)charset utf8;
+```
+
+主键一旦增加，那么对应的字段有数据要求
+
+1. 当前字段对应的数据不能为空
+2. 当前字段对应的数据不能有任何重复
+
+主键分类：
+
+主键分类采用的是主键所对应的字段的业务意义分类：
+
+
+
+业务主键：主键所在的字段，具有业务意义（学生ID，课程ID）
+
+逻辑主键：自然增长的整形（应用广泛）
+
+
+
+* 唯一键
+
+unique key , 用来保证对应的字段中的数据唯一
+
+主键也可以用来保证字段数据唯一性，但是一张表只有一个主键
+
+1. 唯一键在一张表中可以有多个
+2. 唯一键允许字段数据为NULL，NULL可以有多个（NULL不参与比较）
+3. 在不为空的情况下，不允许重复
+
+
+
+创建唯一键
+
+方法和创建主键的方法非常相似
+
+方法1，直接在表字段之后增加唯一键标识符：unique[key]
+
+```mysql
+create table my_unique1(
+username varchar(10) unique
+)charset utf8;
+```
+
+方法2，在所有的字段之后使用unique key(字段列表)
+
+```mysql
+create table my_unique2(
+username varchar(10),
+unique key(username)
+)charset utf8;
+```
+
+方法3，表创建完之后增加唯一键
+
+```mysql
+create table my_unique3(
+username varchar(10)
+-- unique key(username)
+)charset utf8;
+
+alter table  my_unique3 add unique key(username);
+```
+
+
+
+查看唯一键：
+
+唯一键是属性，可以通过查看表结构来实现
+
+
+
+删除唯一键：
+
+一个表中允许存在多个唯一键
+
+```mysql
+alter table my_unique3 drop index username;
+```
+
+只是唯一键消失了，但是这个数据类型还是存在的
+
+
+
+修改唯一键：
+
+先删除，后增加
+
+
+
+复合唯一键
+
+唯一键与主键一样可以使用多个字段来共同保证唯一性
+
+**一般主键都是单一字段（逻辑主键），而其他需要唯一性的内容都是由唯一键来处理的？？**
+
+
+
+* 自动增长
+
+auto_increment，通常用于逻辑主键， 当给定某个字段该属性之后，该列的数据在没有提供确定数据的时候，系统会根据之前已经存在的数据进行自动增加，填充数据
+
+
+
+原理：
+
+1. 在系统中会维护一组数据，用来保存当前使用了自动增长属性的字段，记住当前对应的数据值，再给定一个指定的步长
+2. 当用户进行数据插入的时候，如果没有给定值，系统在原始值上再加上步长变成新的数据
+3. 自动增长的触发方式：给定属性的字段没有提供值
+4. 自动增长只适用于数值
+
+
+
+使用自动增长：
+
+基本语法：
+
+方法1，在字段之后增加属性 auto_increment 
+
+**Incorrect table definition; there can be only one auto column and it must be defined as a key**
+
+只能有一列是自动增长类型，并且需要先定义为key类型
+
+```mysql
+create table my_auto(
+id int primary key auto_increment
+)charset utf8;
+```
+
+方法2，创建之后添加属性
+
+```mysql
+alter table 表名 change 旧字段名 新字段名 字段类型 [列属性][新位置]
+alter table my_auto change id id int not null auto_increment;
+-- 这里可以多说一点，not null 是因为 auto_increment 的前提是为key，然后key的前提是null不为空
+```
+
+
+
+插入数据：
+
+```mysql
+-- 如果要使用自动增长，不能给定具体值
+insert my_auto values(null ,1);
+```
+
+
+
+查看自增长：
+
+```mysql
+-- 自增长在触发之后，会自动的在表选项中添加一个选项（一张表最多只能拥有一个自增长）
+show create table 表名;
+```
+
+
+
+修改自增长：
+
+```mysql
+-- 基本语法
+alter table 表名 auto_increment = 值;
+```
+
+
+
+删除自增长：
+
+在该字段属性之后不再保留auto_increment，当用户修改自增长所在字段时，如果没有看到auto_increment 属性，系统会自动清除该自增长
+
+```mysql
+
+alter table my_auto modify id int;
+```
+
+
+
+ps:
+
+1. 一张表只有一个自增长，自增长会上升到表选项中
+
+```mysql
+-- 查看自增长初始变量
+show variables like 'auto_increment%';
+```
+
+2. 如果数据表中没有触发自增长，那么自增长不会表现
+3. 自增长修改的时候，值可以较大，但是必须必当前已有的字段的自增长值大
 
