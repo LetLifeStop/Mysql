@@ -1409,3 +1409,230 @@ group by 字段一 asc , 字段二 desc;
 group by 字段 [asc|desc] with rollup;
 ```
 
+* 多分组回溯统计
+
+```mysql
+select int_1,count(*) from my_int froup by int_1,int_2 with rollup;
+```
+
+
+
+* Having 子句
+
+Having子句的本质和where是相同的，是用来进行数据条件筛选
+
+1. Having是在group by 子句之后，可以根据统计结果筛选（where不能根据统计结果筛选）
+2. where不能使用聚合函数，聚合函数是在group by 分组的时候，再去运行，但是这个时候where已经执行完毕
+
+```mysql
+select int_1 , count(*) as number from my_int group by int_2 having number >= 2 ;
+-- 从my_int表中，查询字段int_1 ,然后判断该类的数目 按照int_2 进行排序，然后再对筛选完的结果取 >= 2 的个数 
+```
+
+**Having 是在group by 之后，group by 都是在where 之后，where 的时候是从磁盘拿到内存，where之后的所有操作都是内存操作**
+
+
+
+* order by 子句
+
+根据校对规则对数据进行排序
+
+```mysql
+-- 基本语法
+order by 字段 [asc|desc];
+-- 将获取的内容按照int_2 升序排列
+select * from my_int order by int_2 asc;
+```
+
+也可以实现多字段排序
+
+```mysql
+order by 字段一,规则,字段二，规则;
+select * from my_int order by int_2 asc,int_3 desc;
+```
+
+
+
+* limit子句
+
+用来限制记录数量获取
+
+
+
+* 分页
+
+利用limit 来限制获取指定区间的数据
+
+基本语法：
+
+```mysql
+-- offset 为偏移量，从哪里开始，如果没有的话默认为0
+limit offset,length;
+```
+
+
+
+* between
+
+```mysql
+ -- 查找区间
+ select * from my_int where int_1 between -1 and 3;
+```
+
+
+
+#### 查询中的运算符
+
+* 算术运算符
+
+​     \+ , - , * , / , %
+
+基本算术运算： 通常不在条件中使用，而是用于结果运算（select 字段）
+
+```mysql
+select int_1 + int_2 ,int_1 - int_2 ,int_3 * int_4 ,int_3 / int_4 ,int_3 % int_4 from my_int;
+```
+
+* 比较运算符
+
+\>= , < , <= , = ,<
+
+通常用来在条件中进行限定结果
+
+* 逻辑运算符
+
+and , or , not 
+
+* in运算符
+
+当结果是一个集合的时候，用来替代 = 
+
+```mysql
+-- 基本语法
+in(结果1,结果2,结果3...)只要当前结果在集合中出现过，那么就成立
+select * from my_int where int_2 in (2,2);
+```
+
+* like运算符
+
+是用来进行模糊匹配的（字符串）
+
+```mysql
+-- 基本语法  like‘匹配子串’  % 表示 单个字符 ， _表示多个字符
+select * from my_int where int_1 like '_';
+select * from my_int where int_1 like '%';
+```
+
+
+
+#### 联合查询
+
+**基本概念**
+
+联合查询是可合并多个相似的选择查询的结果集。等同于将一个表追加到另一个表，从而实现将两个表的查询组合在一起，使用为谓词 为 UNION 或 UNION ALL 
+
+联合查询：将多个查询的结果合并到一起（纵向合并）：字段数不变，多个查询的记录数合并
+
+**应用场景**
+
+1. 将同一张表中不同的结果（需要对多条查询语句来实现），合并到一起展示数据，男生身高升序女生身高降序
+2. 最常见：在数据量大的情况下，会对表进行分类操作，主要对每张表进行部分数据统计，使用联合查询来将数据存放到一起
+
+**基本语法**
+
+select 语句
+
+union [union 选项]
+
+select 语句
+
+union 选项：与select 选项基本一样
+
+distinct：去重，去掉完全重复的数据（union 默认的是去重）
+
+```mysql
+select * from my_int
+union 
+select * from my_int;
+```
+
+在union后面加上 all ， 是保存所有结果
+
+
+
+union理论只保证字段数一样，不需要每次拿到的数据对应的字段类型一样。永远只保留第一个select 语句对应的字段名字
+
+
+
+* order by 的使用
+
+在联合查询中，如果要使用order by ，那么对应的select 语句必须使用括号括起来
+
+```mysql
+(select * from my_int)
+union 
+(select * from my_int order by int_1 desc);
+```
+
+
+
+#### 连接查询
+
+将多张表连到一起进行查询（会导致记录数 行 和 字段数列发生改变）
+
+* 连接查询的意义
+
+ 在关系型数据库设计的过程中，表与表之间是存在很多联系，在关系型数据库的设计过程中，遵循着：一对多，一对一，多对多。在实际的操作过程中，通过这层关系来保证数据的完整性
+
+* 分类
+
+交叉连接、内连接、外连接（左外连接（左连接），右外连接（右连接））、自然连接
+
+* 交叉连接
+
+将两张表的数据与另外一张表彼此交叉
+
+**原理**
+
+1. 从第一张表一次取出每一条记录
+2. 取出每一条记录之后，与另外一张表的全部记录挨个匹配
+3. 没有任何匹配条件，所有的结果都会进行保存
+4. 记录数 = 第一张表记录数 * 第二张表记录数 ；字段数 = 第一张表字段数 + 第二张表字段数(笛卡尔积)
+
+```mysql
+-- 基本语法
+表1 cross join 表2;
+select * from my_int1 cross join my_int2;
+```
+
+**应用**
+
+交叉连接产生的结果是笛卡尔积，没有实际应用
+
+本质： from 表1 ,表2;
+
+
+
+* 内连接
+
+inner join ，从一张表中取出所有的记录去另外一张表中匹配，利用匹配条件进行匹配，如果成功则保留，失败则放弃
+
+**原理**
+
+1. 从第一张表中取出一条记录，然后去另外一张表中进行匹配
+2. 利用匹配条件继续匹配
+3. 匹配到：保留，继续往下匹配
+4. 匹配失败：向下继续， 如果全表匹配失败，结束
+
+```mysql
+-- 基本语法
+-- 表1 inner join 表2 on 匹配条件;
+-- 1. 如果内连接没有条件，那么其实就是交叉连接
+select * from my_int inner join my_int2;
+-- 2. 使用匹配条件进行匹配 ,注意字段前面要注明是哪个表的
+ select * from my_int inner join my_int2 on my_int.int_2 = my_int2.int_2;
+
+-- 如果条件中使用到对应的表名，而表名通常比较长，所以可以通过表别名来简化
+ select * from my_int as int1 inner join my_int2 int2 on int1.int_2 = int2.int_2;
+```
+
