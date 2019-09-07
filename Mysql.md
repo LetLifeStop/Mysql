@@ -1632,7 +1632,431 @@ select * from my_int inner join my_int2;
 -- 2. 使用匹配条件进行匹配 ,注意字段前面要注明是哪个表的
  select * from my_int inner join my_int2 on my_int.int_2 = my_int2.int_2;
 
--- 如果条件中使用到对应的表名，而表名通常比较长，所以可以通过表别名来简化
- select * from my_int as int1 inner join my_int2 int2 on int1.int_2 = int2.int_2;
+-- 如果条件中使用到对应的表名，而表名通常比较长，所以可以通过表别名来简化,这里使用on 和 where 的效果是一样的
+ select * from my_int as c inner join my_int2 as s on s.int_2 = c.int_2;
 ```
+
+**应用**
+
+内连接通常是在对数具有精切要求的地方使用；必须保证两种表都能进行数据匹配
+
+
+
+* 外连接
+
+ outerjoin，按照某一张表作为主表（保重所有记录在最后都会保留），根据条件去链接另外一张表，从而得到目标数据
+
+分为两种，左外连接，右外连接
+
+左连接：左表是主表；右连接：右表是主表
+
+**原理**
+
+1. 确定链接主表：左连接就是left join 左边的表作为主表；right join 就是右边为主表
+2. 拿主表的每一条记录，去匹配另外一张表的每一条记录
+3. 如果满足匹配条件，保留；不满足就不保留
+4. 如果主表记录在从表中一条都没有匹配成功，那么也要保留该记录；从表对应的字段都为NULL
+
+```mysql
+-- 语法
+-- 左连接：主表 left join 从表 on 链接条件;
+-- 右连接：从表 right join 主表 on 链接条件;
+select * from my_int s left join my_int2 c on s.int_2 = c.int_2;
+```
+
+特点：
+
+1. 外链接中，主表数据一定会保存，链接之后不会出现记录数少于从表
+2. 左连接和右连接可以相互转换，但是数据对应的位置（表顺序）会改变
+
+**应用**
+
+非常有用的一种获取的数据方式，作为数据获取对应主表以及其他数据
+
+
+
+* using关键词
+
+是在连接插叙闹钟用来代替对应的on关键词的，进行条件匹配
+
+**原理**
+
+1. 在连接查询的时候，使用on 的地方用using代替
+2. 使用using 的前提是对应的两张表连接的字段时同名
+3. 如果使用using关键词，那么对应的同名字段，最终在结果汇总只会保留一个
+
+```mysql
+-- 语法
+-- 表一 join 表二 using (同名字段列表);
+select * from my_int t join my_int2 g using (int2);
+```
+
+
+
+
+
+## 子查询
+
+### **子查询概念**
+
+当一个查询是另一个插叙你的条件时，称之为子查询
+
+子查询：在一条select 语句中，嵌入了另外一条select 语句，那么被嵌入的select 语句称之为子查询语句
+
+### **主查询概念**
+
+主要的查询对象，第一条select 语句，确定的用户所有获取的数据目标（数据源），以及要得到的字段的具体信息
+
+子查询和主查询的关系
+
+1. 子查询是嵌入到主查询中
+2. 子查询的是辅助主查询的
+3. 子查询可以独立存在，是一条完整的select 语句
+
+### **子查询分类**
+
+**按照功能分类**
+
+* 标量子查询 ： 子查询返回的结果是一个数据（一行一列）
+* 列子查询：返回的结果是一列（一列多行）
+* 行子查询：返回的结果是一行（一行多列）
+* 表子查询：返回的结果是多行多列
+* exists子查询：返回的结果是1 或者 0
+
+#### 按照位置分类
+
+where子查询：子查询出现的位置在where条件
+
+from子查询：子查询出现的位置在from 数据源
+
+
+
+### 标量子查询
+
+**概念**
+
+子查询的得到结果是一个数据（一行一列）
+
+**语法**
+
+```mysql
+-- 基本语法
+select * from 数据源 where 条件判断 =(select 字段名 from 数据源 where 条件判断);
+
+select * from my_int2 where int_2 = (select int_2 from my_int where int_2 = 100);
+```
+
+
+
+### 列子查询
+
+**概念**
+
+列子查询：子查询得到的结果是一列数据（一列多行）
+
+**语法**
+
+基本语法：
+
+```mysql
+-- 主查询 where 条件 in (列子查询);
+select int_1 from my_int where int_2 in (select int_1 from my_int2);
+```
+
+
+
+### 行子查询
+
+**概念**
+
+子查询返回的结果是一行多列
+
+**行元素**
+
+字段元素是指一个字段对应的值，行元素对应的就是多个字段，多个字段合起来作为一个元素参与运算，把这种情况称为行元素
+
+**语法**
+
+```mysql
+-- 基本语法：
+主查询 where 条件 [(构造一个行元素)] =[(行子查询)];
+select * from my_int2 where (int_2,int_3) = (select max(int_4),max(int_5) from my_int);
+select * from my_int2 where (int_3,int_4) = (select max(int_3),max(int_4) from my_int);
+```
+
+常见的三个子查询：
+
+行查询，列查询，标量子查询
+
+
+
+### 表子查询
+
+**概念**
+
+表子查询，子查询返回的结果是多行多列的二维表
+
+语法：
+
+```mysql
+-- select 字段表 from (表子查询) as 别名 [where][group by][having][order by][limit];
+select * from (select * from my_int order by int_5) as tmp group by int_1;
+```
+
+
+
+### exists 子查询
+
+**概念**
+
+返回的结果只有 0 、1 。1代表成立，0代表不成立
+
+**语法**
+
+```mysql
+-- where exits(查询语句);
+-- 存在返回1， 否则返回 0
+select * from my_int as c where exists(select int_1 from my_int2 as s  where c.int_2 = s.int_5);
+```
+
+
+
+### 子查询中特定的关键词的使用
+
+* in
+
+主查询 where 条件 in  ( 列子查询 )
+
+* any 等价于in
+
+条件在查询结果中有任意一个匹配即可
+
+where 条件 in （列子查询）  等价于 where  条件 = any（列子查询）;
+
+**<>any : 条件在查询结果中不等于与任何一个**  
+
+```mysql
+select * from my_int as c where int_2 in (select int_2 from my_int2);
+select * from my_int as c where int_2 = any(select int_2 from my_int2);
+select * from my_int as c where int_2 <> any(select int_2 from my_int2);
+```
+
+* some
+
+与any相同
+
+```mysql
+select * from my_int as c where int_2 <> some(select int_2 from my_int2);
+```
+
+* all
+
+=all(列子查询)：等于里面所有
+
+<>all(列子查询) ：不等于其中所有
+
+```mysql
+select * from my_int as c where int_2 = all(select int_2 from my_int2);
+select * from my_int as c where int_2 <> all(select int_2 from my_int2);
+```
+
+如果对应的字段有NULL，则不参与匹配
+
+
+
+
+
+### 整库数据备份与还原
+
+mysql bin目录下。mysqldump.exe 是一个用于备份SQL的客户端
+
+#### 应用场景
+
+不仅仅备份数据，氦备份sql指令。
+
+但是sql备份需要备份结构，所以产生的备份文件比较大，不适合特大型数据库的备份，
+
+也不适合数据变换频繁型数据库备份
+
+#### **应用方案**
+
+* **SQL备份**
+
+被分到专门的备份客户端，因此还没有与数据路服务进行链接
+
+基本语法：
+
+mysqldump/mysqldump.exe  -hPup 数据库名字[表1 [表2]] > 备份文件地址
+
+
+
+备份的三种形式：
+
+1. 整库备份 （只需要提供数据库的名字）
+
+```mysql
+mysqldump.exe -h localhost  -u root -p mydatabase2 > c:/server/mydatabase2.sql
+```
+
+2. 单表备份 ：数据库后面跟一张表 
+3. 多表备份：
+
+```mysql
+mysqldump.exe -h localhost -u root -p mydatabase2 class,class2 > c:/server/mydatabase2.sql
+```
+
+* **数据还原**
+
+mysqldump备份的数据中没有关于数据库本身的操作，都是针对表级别的操作：当进行数据（SQL还原），必须指定数据库
+
+三种方法：
+
+1. 
+
+利用mysql.exe 客户端：没有登录之前，可以直接使用该客户端进行数据还原
+
+```mysql
+mysql.exe -hPup 数据库 < 文件位置
+```
+
+2. 
+
+source SQL文件位置; (**必须先进入到对应的数据库**)
+
+```mysql
+source c:/server/mydatabase2.sql;
+```
+
+3. 
+
+人为操作，打开备份文件，复制所有的SQL指令，然后到mysqld.exe客户端中去粘贴复制
+
+
+
+#### 用户权限管理
+
+* **用户管理**
+
+mysql中所有用户的信息都是保存在mysql 数据库下的user表中
+
+```mysql
+-- \G 是规范输出 
+select * from mysql.user\G; 
+```
+
+默认的，在安装mysql 的时候，如果不创建匿名用户，那么意味着所有的用户只有一个：root 超级用户
+
+用户管理是由对应的host 和 user 共同组成主键来区分的
+
+user ： 代表用户的用户名
+
+host：代表本质是允许访问的客户端
+
+
+
+* **创建用户**
+
+基本语法：
+
+create user 用户名 identified by  '明文密码';
+
+用户：
+
+用户名@主机地址
+
+主机地址：
+
+/   : 空
+
+% ：
+
+```mysql
+-- 对应的地址不再限制
+create user 'user4'@'%' identified by '123456';
+```
+
+简化版：
+
+```mysql
+-- 不设定客户端IP ，没有密码的用户
+create user user3;
+```
+
+当用户创建完成之后，用户是否可以使用
+
+```mysql
+mysql -user3;
+```
+
+* 删除用户
+
+基本语法：drop user 用户名@host;
+
+* 修改用户密码
+
+1. 使用专门的修改密码的指令
+
+基本语法：set password 用户 = password('新的明文密码');
+
+```mysql
+ set password for 'user4'@'%' = '12346';
+```
+
+2. 使用更新语句 update 来修改表
+
+基本语法：
+
+```mysql
+-- 有 bug
+ update mysql.user set authentication_string=PASSWORD("123456") where user="root" and host="localhost";
+```
+
+
+
+#### 权限管理
+
+权限管理分为三类：
+
+1. 数据权限：增删改查（select \ update \ delete \ insert ）
+
+2. 结构权限：结构操作（create\drop）
+3. 管理权限：权限管理（create user\gtand\revoke）
+
+
+
+* **授予权限：grand**
+
+将全线分配给指定的用户
+
+基本语法： grant 权限列表 on 数据库/*. 表名/ *to 用户;
+
+权限管理：使用逗号分隔，但是可以使用all privileges 代表全部权限
+
+数据库.表名：可以是单表，可以是多个表，也可以是整个库
+
+```mysql
+grant select on mydatabase2.class to 'user3'@'%';
+```
+
+
+
+* 取消权限：revoke
+
+基本语法： revoke 权限列表/all orivileges on 数据表/*\.表/ * from  用户;
+
+```mysql
+revoke all privileges on mydatabase2.class from 'user3'@'%';
+```
+
+
+
+* 刷新权限
+
+flush ：刷新，将当前对用户的权限操作，进行一个刷新，将操作的具体内容同步到对应的表中
+
+基本语法：flush privileges;
+
+
+
+#### 外键
 
