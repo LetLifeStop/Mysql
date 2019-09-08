@@ -2060,3 +2060,127 @@ flush ：刷新，将当前对用户的权限操作，进行一个刷新，将�
 
 #### 外键
 
+* 概念
+
+如果公共关键字在一个关系中是主关键字，那么这个公共关键字被称为另外一个关系的外键。由此可见，外键表示了两个关系之间的相关联系。以另一个关系的外键做主关键字的表被称为主表，具有此外键的表被称为主表的从表。外键又叫外关键字
+
+* 通俗理解：一张表（A）中有一个字段，保存的值指向另外一张表（B）的主键，A称为从表，B称为主表
+
+* 增加外键
+
+Mysql中提供了两种方式增加外键
+
+1. 
+
+在创建表的时候增加外键（类似主键）
+
+基本语法：
+
+```mysql
+[constraint '外键名'] foreign key(外键字段) references 主表 (主键);
+
+create table my_foreign(
+id int primary key auto_increment,
+name varchar(10) not null,
+-- 关联my_int中的 int_4
+class_id tinyint,
+foreign key(class_id) references my_int(int_1)  
+)charset utf8;
+```
+
+### 
+
+2. 在创建表之后增加主键
+
+```mysql
+-- alter table 从表 add[constraint '外键名'] foreign key(外键字段) references 主表(主键)
+-- constraint 后面的外键名 my_foreign_ibfk_1 是通过 show create table 表名; 来查看的，外键名是可以指定的
+alter table my_foreign add foreign key (class_id) references my_int(int_1);
+```
+
+
+
+* 修改 && 删除外键
+
+外键不允许就该，只能先删除后增加
+
+```mysql
+-- 基本语法： 
+-- alter table 从表 drop foreign key 外键名字;
+alter table my_foreign drop foreign key 'my_foreign_ibfk_1';
+-- 只会删除外键，但是索引并没有删掉
+```
+
+如果想要删除对应的索引
+
+```mysql
+alter table 表名 drop index 索引名字;
+alter table my_foreign drop index class_id;
+```
+
+
+
+* 外键的基本要求
+
+1. 外键字段需要保证与关联的主表的主键字段类型完全一致
+2. 基本属性也要相同
+3. 如果是在表后增加外键，对数据还有一定的要求
+4. **一定要注意主表是主键建立外键**
+5. 外键只能适用innodb存储引擎；myisam不支持
+
+
+
+#### 外键约束
+
+通过建立外键关系之后，对从表和主表都会有滴定的数据约束效率
+
+* 约束的基本概念
+
+1. 当一个外键产生时，外键所在的表（从表）会受制于主表数据的存在从而到时数据不能进行某些不符合规范的操作（不能插入主表不存在的数据）
+
+2. 如果有一张表被其他表外键引入，那么该表的数据操作就不能随意；必须保证 从表数据的有效性
+
+
+
+**外键约束的概念**
+
+可以在创建外键的时候，对外键约束进行选择性的操作。
+
+基本语法：
+
+```mysql
+alter table 从表 add foreign key(外键字段) references 主表(主键) on 约束模式;
+alter table my_student add foreign key(class_id) references  my_class(class_id) on update cascade;
+```
+
+约束模式三种：
+
+1. district :严格模式，默认的，不允许操作
+2. cascade：级联模式，一起操作，主表变化，从表数据跟着变化
+3. set ull ：置空模式，主表变化（删除），从表对应记录设置为空，前提是从表中对应的外键字段允许为空
+
+**外键约束主要约束的对象是从表操作：从表就是不能插入主表不存在的数据**
+
+通常在进行约束的时候，需要指定操作集合：update 和 delete
+
+常用的约束模式： 
+
+```mysql
+-- 更新级联
+on update cascade
+-- 删除置空
+on delete set null
+-- 更新模式
+update my_class set class_id = 4 where class_id = 2;
+-- 删除模式
+delete from my_class set class_id =4;
+```
+
+
+
+终于搞出来了，，，
+
+![1567951971816](C:\Users\acm506\AppData\Roaming\Typora\typora-user-images\1567951971816.png)
+
+**更新a，aaa就会跟着变，注意将主表的那个字段设置成主键**
+
