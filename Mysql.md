@@ -2184,3 +2184,527 @@ delete from my_class set class_id =4;
 
 **更新a，aaa就会跟着变，注意将主表的那个字段设置成主键**
 
+**约束作用：**
+
+保证数据的完整性，主表与从表的数据要一致
+
+正是因为外键有非常强大的数据约束作用，而且可能导致数据在后台变化的不可控。到时程序在进行设计开发逻辑的时候，没有办法很好的把握数据，所以外键比较少使用
+
+
+
+#### 视图基本操作
+
+
+
+* **创建视图**
+
+视图的本质是 SQL 指令（select 语句） **虚拟表，表的操作都适用于视图**
+
+基本语法：
+
+```mysql
+create view 视图名字 as select 指令; 
+-- 如果直接执行这个指令，虚拟表也是表，所以表中不能出现同名字段
+create view student_v as select * from my_student as s 
+left join my_class as c 
+on  s.age = c.age;
+-- 我们可以只是选取一部分进行拼凑
+create view student_v as select s.stu_id,c.stu_name from my_student as s 
+left join my_class as c 
+on  s.age = c.age;
+```
+
+**查看视图结构**
+
+```mysql
+select * from student_v;
+show create view student_v\G;
+```
+
+
+
+* **使用视图**
+
+视图是一张虚拟表，可以直接把视图当做表来进行操作，但是视图本身没有数据，是临时执行 select 语句得到的对应结果，视图主要用户查询操作
+
+
+
+* **修改视图**
+
+本质是修改视图对应的查询语句
+
+```mysql
+-- 基本语法
+alter view 视图名字 as 新select指令
+alter view student_v as select s.stu_id,c.stu_name from my_student as s left join my_class as c on s.stu_name = c.stu_name;
+```
+
+
+
+* **删除视图**
+
+```mysql
+-- 基本语法
+drop view 视图名称;
+drop view student_v;
+```
+
+
+
+#### 事务安全
+
+
+
+* **概念**
+
+事务是访问并可能更新数据库中各中数据项的一个**程序执行单元**。 由**高级数据库操纵语言**或**编程语言书写的用户程序的执行**所引起的。 事务由 事务开始(begin transaction) 和 事务结束(end transaction) 之间的执行的全体操作组成。
+
+
+
+* **事务基本原理**
+
+基本原理：Mysql 允许将事务统一进行管理（存储引擎 INNODB），将用户所做的操作，暂时保存起来，不直接放到数据表进行更新，等到确认结果之后再进行操作
+
+事务在mysql中通常是自动提交的，也可以使用手动事务
+
+
+
+#### **自动事务**
+
+autocommit, 当客户端发送一条SQL指令给服务器的时候，服务器在执行之后，不同等待用户反馈结果，会自动将结果同步到数据表
+
+```mysql
+-- 查看自动事务类型
+show variables like 'autocommit%';
+-- 关闭自动事务
+set autocommit = off;
+```
+
+当自动事务关闭的时候，需要用户提供是否同步的命令
+
+commit;提交（同步到数据表，事务也会被清空）
+
+rollback：回滚（清空之前的操作）
+
+
+
+**手动事务**
+
+不管开始，过程，结束都需要用户手动的发送事务操作指令来实现
+
+**（前提是 autocommit 这个时候为 off）**
+
+手动事务对应的命令：
+
+1. start transaction; （**从这条语句开始，后面的所有数据都不会直接写入到数据表中（保存在事务日志中）**）
+
+2. 事务处理：多个写指令构成
+3. 事务提交：comiit/rollback，到这个时候所有的事务才算结束
+
+
+
+* **开启事务**
+
+```mysql
+start transaction;
+```
+
+* **执行事务**
+
+将多个连续的但是是一个整体的SQL指令，逐一执行
+
+当执行完SQL指令的时候，commit确认提交，这样数据就会写到数据表（**事务清空**）
+
+回滚操作：rollback ，所有数据无效并且清空
+
+
+
+* **回滚点**
+
+当有一系列事务操作时，我们可以设置一个记号（回滚点），然后如果后面有失败，那么可以回到这个记号位置
+
+增加回滚点：savepoint 回滚点名字;
+
+回到回滚点：rollback to 回滚点名字;
+
+**在一个事务中，我们可以设置多个回滚点，但是如果回到了之前的回滚点，后面的回滚点就会失效**
+
+
+
+#### 事务特性
+
+1. **原子性**，一个事务是一个不可分割的工作单位，事务中包括的诸操作要么都做，要么都不做，从start transaction 起到提交事务（commit或者rollback） 要么所有的操作都是成功的，要么所有的操作都是失败
+2. **一致性**，必须是从一个一致状态到另一个一致状态，要么所有的操作一次性修改，要么就是不懂
+3. **隔离性**，一个事务的执行不能被其他事务干扰，并发执行的各个事务之间不能互相干扰
+4. **持久性（永久性）**，一个事务一旦提交，它对数据库中数据的该表应该是永久性的
+
+
+
+**行隔离 && 整表被隔离**
+
+如果条件中使用了索引（主键），那么系统是根据主键直接找到某条记录，这个时候只隔离这一条记录。如果系统通过全表检索（每一条记录都与检查，没有索引），那么被检索的数据都会被锁定
+
+
+
+#### 变量
+
+
+
+* #### 系统变量
+
+系统内部定义的变量，系统变量针对所有的用户有效
+
+```mysql
+show variables 
+```
+
+查看变量的数据值（系统设定）
+
+```mysql
+select @@变量名;
+```
+
+
+
+**修改系统变量的两种方式**
+
+1. 局部变量（会话级别）：只针对当前自己客户端
+
+```mysql
+set 变量名 = 新值;
+```
+
+2. 全局修改：针对所有的客户端，“所有时刻”都有效,针对新的客户端（**正在连着的无效，如果是修改正在连着的，通过第一种方法**）
+
+```mysql
+set global 变量名 = 值;
+-- 或者
+set @@global.变量名 = 值;
+```
+
+
+
+* #### 会话变量
+
+也称为用户变量，跟当前mysql客户端是绑定的，设置的变量支队当前使用的客户端生效
+
+定义用户变量：set @变量名 = 值;
+
+**在mysql中，为了区分是 赋值 还是 比较 ， 特定增加一个变量的赋值符号  := 
+
+```mysql
+set @age :=50;
+```
+
+
+
+赋值且查看赋值过程：
+
+```mysql
+select @变量1 := 字段1, @变量2 := 字段2 from 数据表 where 条件;
+```
+
+只赋值不看过程：
+
+```mysql
+select 字段1,字段2  from 表名 where 条件 into @变量1,@变量2;
+ select stu_id ,stu_name from my_class where class_id = 3 into @id ,@name;
+```
+
+查看变量：select @变量;
+
+```mysql
+select @id,@name;
+```
+
+
+
+#### 局部变量
+
+作用范围在begin 和 end 语句块之间。在该语句块里设置的变量，declare 语句专门用于定义局部变量
+
+
+
+1. 局部变量是使用 declare 关键字姓名
+2. 局部变量declare 一定是在begin 和 end之间 
+3. 声明语句：declare 变量名 数据类型[属性];
+
+
+
+### 流程结构
+
+代码的执行顺序
+
+
+
+* #### if分支
+
+  **基本语法**
+
+if在mysql中有两种基本用法
+
+1. 用在 select 查询中，当做一种条件来进行判断 
+
+```mysql
+-- 基本语法
+if(条件,为真结果，为假结果)
+select *, if(class_id > 11 ,'right','wrong') as judge  from my_class;
+会在原来的表上再加一列，当class_id > 11 的时候 标明 right ，否则标明 wrong
+```
+
+2. 用在复杂的语句中（函数/存储过程/触发器）
+
+基本语法：
+
+```mysql
+if 条件表达式 then
+   满足条件要执行的语句
+end if
+```
+
+复合语法：
+
+if套if
+
+
+
+#### while循环
+
+
+
+* **基本语法**
+
+```mysql
+while 条件 do
+    要循环执行的代码
+end while;
+```
+
+
+
+* **结构标识符**
+
+为某些特定的结构进行命名，然后韦德是在某些地方使用名字
+
+**基本语法**
+
+```mysql
+标识名字:while 条件 do
+循环体
+end while[标识名字];
+```
+
+标识符的存在主要是为了循环体重使用循环控制。在mysql中没有continue 和 break, 有自己的关键字替代
+
+**iterate**: 迭代，就是一下的代码不执行，重新开始循环（continue）
+
+**leave**:离开，整个循环终止 （break）
+
+```mysql
+标识名字：while 条件 do
+  if 条件判断 then
+     循环控制
+     iterate/leave 标识名字;
+  end if;
+  循环体
+end while[标识名字];
+```
+
+
+
+### 函数
+
+ 在mysql中分为两类，系统函数（内置函数） 和 自定义函数
+
+不管是内置函数还是用户自定义函数，都是使用select 函数名(参数列表);
+
+#### 内置函数
+
+* **字符串函数**
+
+char_length() : 判断字符串的字符数
+
+length(); 判断字符串/字符集的字节数
+
+```mysql
+select char_length('你好中国') ,length('你好中国');
+```
+
+concat();链接字符串
+
+instr(); 判断字符串在目标字符串中是否存在，存在的话返回位置，不存在返回 0
+
+```mysql
+select concat('你好','中国'),instr('你好中国','中'),instr('你好中国','玩');
+```
+
+lcase(); 目标字符串全部小写
+
+left(); 从左侧开始截取，知道指定位置（如果超过长度，截取所有）
+
+```mysql
+select lcase('AddA'),left('你好中国',2);
+```
+
+ltrim() 消除左边对应的空格
+
+mid()  从中间指定位置开始截取，如果不指定截取长度，直接到最后
+
+```mysql
+select ltrim(' wda d'),mid('abcd',2);
+```
+
+
+
+* **时间函数**
+
+now() 返回当前的时间，日期，时间
+
+curdate() 返回当前日期
+
+curtime() 返回当前时间
+
+```mysql
+select now(),curdate(),curtime();
+```
+
+datediff() 判断两个日期之间的天数差距，参数日期必须使用字符串格式
+
+```mysql
+select datediff('2030-10-10','2019-09-09');
+```
+
+date_add(日期 interval 时间数字 type);  进行时间的增加
+
+```mysql
+-- type  day/hour/minute/second
+select date_add('2019-09-09',interval 10 day);
+```
+
+unix_timestamp() 获取时间戳
+
+from_unixtime() 将对应的时间戳编程对应的日期时间格式
+
+```mysql
+select unix_timestamp();
+select from_unixtime(1568020575);
+
+```
+
+
+
+* **数学函数**
+
+abs( ) 绝对值
+
+ceiling( ) 向上取整 
+
+floor( ) 向下取整
+
+pow( )  当前数的多少次方
+
+rand( )  获取一个随机数（0 -1 ）
+
+round( )   四舍五入函数
+
+```mysql
+select abs(-1) ,ceiling(1.5) ,floor(1.5), pow(2,5) , rand() ,round(1.5);
+```
+
+
+
+* **其他函数**
+
+md5()：对数据进行md5加密（mysql中的md5与其他任何地方的md5加密出来的内容是相同的）
+
+version() ： 获取版本号
+
+database(): 显示当前所在的数据库
+
+uuid() : 生成一个唯一标识符（自增长），自增长是单表唯一，uuid是整库唯一（数据唯一同时空间唯一）
+
+```mysql
+select md5(324),version(),uuid();
+```
+
+
+
+#### 自定义函数
+
+
+
+自定义函数：用户自己定义的函数
+
+函数：实现某种功能的语句块（由多条语句组成）
+
+1. 函数内部的每条指令都是一个独立的个体，需要符合语句定义规范，需要语句结束符分号。
+2. 函数是一个整体，并且函数是在调用的时候才会被执行
+3. mysql一旦见到 语句结束福分号，就会自动开始执行
+
+
+
+解决方案：在定义函数之前，尝试修改临时的语句结束符
+
+基本语法：
+
+```mysql
+-- delimiter 新符号 
+
+-- 中间为正常的SQL指令 ： 使用分号结束（系统不会执行，已经改变分号的作用）
+
+-- 使用新符号结束
+
+-- 修改临时语句结束符 delimiter 新符号
+```
+
+
+
+* **创建函数**
+
+自定义函数包含几个要素：function 关键字，函数名，参数（形参/实参） ，确认函数返回值类型，函数体，返回值
+
+
+
+函数体定义基本语法：
+
+```mysql
+修改语句结束符
+create function 函数名(形参) returns 返回值类型
+begin
+  // 函数体
+-- 并不是所有的函数都需要 begin 和 end ，如果只有一条指令（return），那么可以省略begin 和 end 
+  return 返回值数据; 
+end
+语句结束符
+修改语句结束符(还原)
+```
+
+```mysql
+-- 当函数没有参数的时候，可以修改这个来使得编译通过
+
+set global log_bin_trust_function_creators=TRUE;
+
+delimiter $$
+create function my_func() returns int
+begin 
+ return 10;
+end
+$$ 
+delimiter ;
+```
+
+形参定义方法：
+
+```mysql
+-- 变量名 字段类型 
+delimiter $$
+create function my_func2(int_1 int ,int_2 tinyint) returns int
+begin 
+ return 10;
+end
+$$ 
+delimiter ;
+```
+
+
+
