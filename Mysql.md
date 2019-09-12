@@ -2861,7 +2861,7 @@ set @@global.变量名 = 值;
 
 ​     基本语法：
 
-    ```mysql
+```mysql
 create procedure 过程名字(参数列表) 
 begin
  过程体
@@ -2870,8 +2870,7 @@ end
 -- 当语句简单的时候，可以不用加 begin 和 end
 create procedure my_pro1()
 select * from my_class;
-    ```
-
+```
 
 
 * **查看过程**
@@ -2887,6 +2886,265 @@ select * from my_class;
 * **调用过程**
 
 没有返回值，select 不能调用
+
+```mysql
+call 过程名;
+```
+
+
+
+* **删除过程**
+
+```mysql
+drop procedure 过程名字;
+drop procedure my_por1;
+```
+
+
+
+#### 存储过程的形参类型
+
+存储过程也允许提供参数（形参 和 实参），需要指定类型
+
+存储过程对参数还有额外要求，自己的参数分类
+
+
+
+* in （传入参数）
+
+表示参数从外部传到过程内部使用，可以使直接数据也可以是保存数据的变量
+
+* out（传出参数）
+
+表示参数是从过程里面把数据保存到变量，交给外部使用：传入的必须是变量
+
+**如果说传入的out变量本身在外部有数据，那么在进入过程中，第一件事就是清空， 设为NULL **
+
+* inout（传入传出参数）
+
+
+
+参数的使用：
+
+```mysql
+-- 语法：
+-- 过程类型  变量名 数据类型;
+-- in int_1 int ;
+delimiter $$
+create procedure my_pro2(in int_1 int ,out int_2 int ,inout int_3 int)
+begin
+select int_1 ,int_2 ,int_3;
+-- 第一次中，out类型的变量变成NULL
+set int_1 = 10;
+set int_2 = 100;
+set int_3 = 1000;
+
+select int_1 ,int_2 ,int_3;
+-- 赋值之后变量的值都变了
+select @n1 ,@n2 ,@n3;
+-- 全局变量
+set @n1 = 'a';
+set @n2 = 'b';
+set @n3 = 'c';
+
+select @n1 ,@n2 ,@n3;
+-- 因为 n1 是全局变量，n2 ，n3都有传出的功能，所以n1 为 a，n2 和 n3 都是第一次赋值的值
+end
+$$
+
+delimiter ;
+```
+
+**ps：**
+
+1. 当out / inout 类型的变量传入的时候，实际并没有改变外部变量的值，而是把值传给了形参，注意形参会将out类型的自动清零
+2. 走到end的时候，函数会判断变量是否为out/inout类型，如果是的话，九江对应的值赋给形参，将外部本来的值覆盖掉
+
+
+
+### 触发器
+
+#### 触发器概念
+
+* **基本概念**
+
+1. 一种特殊类型的存储过程，不同于我们前面介绍的过程存储。触发器出招是通过事件进行触发而被执行，而存储过程可以通过存储过程名称而直接被调用
+
+2. trigger ，提前给某张表的所有记录（行）绑定一段代码，如果改行的操作满足条件，这段代码会自动执行
+
+* **作用**
+
+1. 可以在写入数据表前，强制转换或检验数据。（保证**数据安全**）
+2. 触发器发生错误时，异动的结果会被撤销。（如果触发器执行错误，那么前面用户已经执行的成功的操作也会被撤销，保证了**事务安全**）
+3. 部分数据库管理系统可以针对数据定义语言（DDL）使用触发器，称为DDL触发器
+4. 可以根据特定情况，替换异动的指令（instead of） （**mysql不支持**）
+
+
+
+#### 触发器优缺点
+
+* **优点**
+
+1. 触发器可以通过数据库中的相关表实现级联更改。如果某张表的数据更新，可以利用触发器来实现其他表的无痕操作
+2. 保证数据安全，进行安全校验
+
+* 缺点
+
+1. 对触发器过分的依赖，势必影响数据库的结构，同时增加了维护的复杂度
+2. 造成数据在程序层面不可控 
+
+
+
+#### 触发器基本语法
+
+* **创建触发器**
+
+```mysql
+-- 基本语法：
+create trigger 触发器名字 触发时机 触发时间 on 表 for each row
+begin 
+...
+end
+```
+
+触发对象：on 表 for each row ，触发器绑定实质是表中的所有行，因此当每一行发生指定的该表的时候，就会触发触发器
+
+* **触发时机**
+
+每张表中对应的行都会有不同的状态，当SQL指令发生变化的时候，都会令表中数据发生改变，每一行总会有两种状态：数据操作前 和 数据操作后
+
+before：在表中数据发生改变前的状态
+
+after：在表中数据已经发生改变后的状态
+
+* **触发事件**
+
+mysql中触发器针对的目标是数据发生改变，对应的操作只有写操作（**增删改**）
+
+insert ：插入操作
+
+update：更新操作
+
+delete：删除操作
+
+* **注意事项**
+
+一张表中，每一个触发时机绑定的触发事件对应的触发器类型只能有一个：一张表中只能有一个对应 after insert触发器
+
+一张表中最多的触发器只能有6个：before insert ，before update ，before delete，after insert，after update ，after delete
+
+
+
+实例：
+
+```mysql
+create table my_goods(
+id int ,
+name varchar(10),
+inv int 
+)charset utf8;
+insert into my_goods values (1,'手机',1000);
+insert into my_goods values (2,'电脑',500);
+insert into my_goods values (3,'游戏机',100);
+
+create table my_orders (
+id int
+)charset utf8;
+
+delimiter $$
+create trigger after_insert_orders after insert on my_orders for each row 
+begin
+update my_goods set inv = inv -1 where id = 1;
+end 
+$$
+delimiter ;
+```
+
+
+
+* **查看触发器**
+
+1. 查看全部触发器
+
+```mysql
+show triggers\G
+```
+
+2. 查看触发器的创建语句
+
+```mysql
+show create trigger after_insert_orders\G;
+```
+
+
+
+* **触发触发器**
+
+想办法让触发器执行，让触发器指定的表中，在对应的实际发生对应的操作
+
+
+
+* **删除触发器**
+
+基本语法：
+
+```mysql
+drop trigger after_insert_orders;
+```
+
+
+
+#### 触发器应用
+
+* **记录关键字：new ，old**
+
+触发器针对的是数据表中每条记录，每行在数据操作前后都有一个对应的状态，触发器在执行之前就将对应的状态获取获取到了，将没有操作之前的状态都保存到old关键字中，而操作后的状态都放到new中
+
+在触发器中，可以通过 old 和 new 来绑定表中对应的记录数据
+
+基本语法：
+
+关键字.字段名
+
+
+
+old  和 new 并不是所有的触发器都有
+
+insert 插入前全为空，没有old
+
+delete清空数据，没有new
+
+```mysql
+delimiter $$
+create trigger auto_update after insert on my_orders for each row 
+begin
+update my_goods set inv = inv - new.good_num where my_goods.id = new.id;
+end
+$$
+
+delimiter ;
+```
+
+
+
+当库存数量不够时如何强制停止 my_goods 这个表的更新？
+
+```mysql
+delimiter $$
+create trigger auto_check before insert on my_orders for each row 
+begin
+select inv from my_goods where my_goods.id = new.id into @inv;
+if @inv < new.good_num then insert into XXX values ('XXX');
+end if;
+end
+$$
+
+delimiter ;
+```
+
+
+
+
 
 ```mysql
 call 过程名(实参列表);
